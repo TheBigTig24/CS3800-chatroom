@@ -33,10 +33,11 @@ def manageClient(client):
     while True:
         try:
             message = client.recv(1024)
+            
+            # check for private message
             messageDecode = message.decode()
             msg = messageDecode.split(' ', 3)
             if msg[1] == '/r':
-                # private message
                 if len(msg) == 4:
                     recipient = msg[2]
                     privateMsg = msg[3]
@@ -45,6 +46,15 @@ def manageClient(client):
                         clients[index].send((f"{names[clients.index(client)]} is hitting u up privately: {privateMsg}").encode())
                     else:
                         client.send(f"User {recipient} not found.".encode())
+            elif msg[0] == 'admin:' and msg[1] == '/kick':
+                # kick a user
+                thePersonToKick = msg[2]
+                if thePersonToKick in names:
+                    index = names.index(thePersonToKick)
+                    clients[index].send('you have been kicked by admin'.encode())
+                    removeClient(clients[index])
+                else:
+                    client.send(f"User {thePersonToKick} not found.".encode())
             else:
                 # send msg to all other clients
                 flood(message)
@@ -73,17 +83,43 @@ while True:
     client.send('gimme yo name bru:'.encode())
     
     name = client.recv(1024).decode()
-    clients.append(client)
-    names.append(name)
     
-    # notify all users when a new person joins
-    joinMsg = name + ' has joined the kool kidz klub, ts so owen frfr'
+    # check if admin
+    if name == 'admin':        
+        askPassword = 'whats the password? '
+        client.send(askPassword.encode())
+        pwAttempt = client.recv(1024).decode()
+        tries = 0
+        while tries < 3 and pwAttempt.split(' ', 1)[1] != 'ongurt':
+            tryAgainMessage = 'WRONGGGG!!!!! ' + askPassword
+            client.send(tryAgainMessage.encode())
+            pwAttempt = client.recv(1024).decode()
+            tries += 1
+            
+        if pwAttempt.split(' ', 1)[1] == 'ongurt':
+            clients.append(client)
+            names.append(name)
+            client.send('welcome to the light side'.encode())
+            flood('admin has joined'.encode(), client)
+            print('got connection from ', client.getpeername())
+            
+            thread = threading.Thread(target = manageClient, args = (client,))
+            thread.start()
+        if tries >= 3:
+            client.send('bro tryna hack'.encode())
+            client.close()
+    else:
+        clients.append(client)
+        names.append(name)
     
-    client.send((name + ', 微信欢迎你来到聊天室！Use "/r <username> <msg>" to send a dm').encode())
-    flood(joinMsg.encode(), client)
-    
-    print('got connection from ', client.getpeername())
-    
-    # create new thread for each client
-    thread = threading.Thread(target = manageClient, args = (client,))
-    thread.start()
+        # notify all users when a new person joins
+        joinMsg = name + ' has joined the kool kidz klub, ts so owen frfr'
+        
+        client.send((name + ', 微信欢迎你来到聊天室！Use "/r <username> <msg>" to send a dm').encode())
+        flood(joinMsg.encode(), client)
+        
+        print('got connection from ', client.getpeername())
+        
+        # create new thread for each client
+        thread = threading.Thread(target = manageClient, args = (client,))
+        thread.start()

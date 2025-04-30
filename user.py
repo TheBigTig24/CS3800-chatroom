@@ -1,7 +1,7 @@
 import socket
 import threading
 
-name = input("yo name?")
+name = input("yo name? ")
 
 host = socket.gethostname()
 port = 5000
