@@ -20,7 +20,8 @@ def receive():
                 client.send(name.encode())
             else:
                 print(msg)
-        except:
+        except Exception as e:
+            print(f"Error receiving message: {e}")
             client.close()
             break
         

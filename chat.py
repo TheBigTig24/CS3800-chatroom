@@ -2,6 +2,7 @@ import socket
 import threading
 import datetime
 import time
+import cv2
 
 host = socket.gethostname()
 port = 5000
@@ -53,6 +54,9 @@ def manageClient(client):
                         lastActivity.append(activity)
                     else:
                         client.send(f"User {recipient} not found.".encode())
+            elif msg[1] == '/img':
+                # send the image
+                sendImageToAllDemClients(client)
             elif msg[0] == 'admin:' and msg[1] == '/kick':
                 # kick a user
                 thePersonToKick = msg[2]
@@ -90,6 +94,21 @@ def removeClient(client):
     # tell other clients who has left
     leavingMsg = 'ikiag, ' + name + ' skedaddled, ts so kevin'
     flood(leavingMsg.encode())
+    
+def sendImageToAllDemClients(excludedClient = None):
+    try:
+        with open('pizza.png', 'rb') as imageFile:
+            imageData = imageFile.read()
+        for client in clients:
+            if client != excludedClient:
+                try:
+                    client.send(imageData)
+                except Exception as e:
+                    print(f"Error sending image to {client}: {e}")
+                    
+    except Exception as e:
+        print(f"Error reading image file: {e}")
+    
     
     
 # start the inactivity-checker-inator
@@ -155,7 +174,7 @@ while True:
         if pwAttempt.split(' ', 1)[1] == 'ongurt':
             clients.append(client)
             names.append(name)
-            client.send('welcome to the light side'.encode())
+            client.send('Welcome to the light side. Use "/kick <username>" to kick a user'.encode())
             flood('admin has joined'.encode(), client)
             print('got connection from ', client.getpeername())
             
@@ -171,7 +190,7 @@ while True:
         # notify all users when a new person joins
         joinMsg = name + ' has joined the kool kidz klub, ts so owen frfr'
         
-        client.send((name + ', 微信欢迎你来到聊天室！Use "/r <username> <msg>" to send a dm').encode())
+        client.send((name + ', 微信欢迎你来到聊天室！Use "/r <username> <msg>" to send a dm. Use "/img" to send an image.').encode())
         flood(joinMsg.encode(), client)
         
         print('got connection from ', client.getpeername())
