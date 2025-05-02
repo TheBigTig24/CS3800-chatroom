@@ -3,6 +3,7 @@ import threading
 import datetime
 import time
 import cv2
+import numpy as np
 
 host = socket.gethostname()
 port = 5000
@@ -97,12 +98,18 @@ def removeClient(client):
     
 def sendImageToAllDemClients(excludedClient = None):
     try:
-        with open('pizza.png', 'rb') as imageFile:
-            imageData = imageFile.read()
+        image = cv2.imread('dingdong.jpg')
+        image_encoded = cv2.imencode('.jpg', image)[1]
+        nparr = np.array(image_encoded)
+        img_bytes = nparr.tobytes()
+        length = str(len(img_bytes))
+        print(length)
+            
         for client in clients:
             if client != excludedClient:
                 try:
-                    client.send(imageData)
+                    client.send("/img".encode())
+                    client.sendall(img_bytes)
                 except Exception as e:
                     print(f"Error sending image to {client}: {e}")
                     
@@ -114,27 +121,27 @@ def sendImageToAllDemClients(excludedClient = None):
 # start the inactivity-checker-inator
 def i_call_this_the_inactivity_checker_inator():
     while True:
-        # check for inactivity every 5 seconds
-        time.sleep(5)
+        # check for inactivity every 10 seconds
+        time.sleep(10)
         
         # this if statement is to prevent kicking users on join since they have no previous messages
         if len(lastActivity) != 0:
             # check people that have sent a message before
             thesePeopleHaveSpoken = [activity['user'] for activity in lastActivity]
             
-            # check if they have been active in the last 30 seconds
+            # check if they have been active in the last 60 seconds
             afkers = names.copy()
             currentTime = datetime.datetime.now()
             for activity in lastActivity:
                 currName = activity['user']
                 lastTime = activity['time']
                 timeDiff = currentTime - lastTime
-                if timeDiff.total_seconds() < 30:
-                    # remove users that have been active in the last 30 seconds and have typed at least one message
+                if timeDiff.total_seconds() < 60:
+                    # remove users that have been active in the last 60 seconds and have typed at least one message
                     if (currName in afkers) and (currName in thesePeopleHaveSpoken):
                         afkers.remove(currName)
                     
-            # remove all users that are inactive for more than 30 seconds
+            # remove all users that are inactive for more than 60 seconds
             afkers = list(set(afkers))
             for stupidMoron in afkers:
                 try:
