@@ -2,6 +2,8 @@ import socket
 import threading
 import datetime
 import time
+import cv2
+import numpy as np
 
 host = socket.gethostname()
 port = 5000
@@ -53,6 +55,9 @@ def manageClient(client):
                         lastActivity.append(activity)
                     else:
                         client.send(f"User {recipient} not found.".encode())
+            elif msg[1] == '/img':
+                # send the image
+                sendImageToAllDemClients(client)
             elif msg[0] == 'admin:' and msg[1] == '/kick':
                 # kick a user
                 thePersonToKick = msg[2]
@@ -91,31 +96,52 @@ def removeClient(client):
     leavingMsg = 'ikiag, ' + name + ' skedaddled, ts so kevin'
     flood(leavingMsg.encode())
     
+def sendImageToAllDemClients(excludedClient = None):
+    try:
+        image = cv2.imread('dingdong.jpg')
+        image_encoded = cv2.imencode('.jpg', image)[1]
+        nparr = np.array(image_encoded)
+        img_bytes = nparr.tobytes()
+        
+        length = str(len(img_bytes))
+            
+        for client in clients:
+            if client != excludedClient:
+                try:
+                    client.send(("/img " + length).encode())
+                    client.sendall(img_bytes)
+                except Exception as e:
+                    print(f"Error sending image to {client}: {e}")
+                    
+    except Exception as e:
+        print(f"Error reading image file: {e}")
+    
+    
     
 # start the inactivity-checker-inator
 def i_call_this_the_inactivity_checker_inator():
     while True:
-        # check for inactivity every 5 seconds
-        time.sleep(5)
+        # check for inactivity every 10 seconds
+        time.sleep(10)
         
-        # this if statement is to prevent kicking users on join since they have no previous messages
+        # this if statement is to stop from kicking people out when nothings happened yet
         if len(lastActivity) != 0:
             # check people that have sent a message before
             thesePeopleHaveSpoken = [activity['user'] for activity in lastActivity]
             
-            # check if they have been active in the last 30 seconds
-            afkers = names.copy()
+            # check if they have been active in the last 60 seconds
+            afkers = thesePeopleHaveSpoken.copy()
             currentTime = datetime.datetime.now()
             for activity in lastActivity:
                 currName = activity['user']
                 lastTime = activity['time']
                 timeDiff = currentTime - lastTime
-                if timeDiff.total_seconds() < 30:
-                    # remove users that have been active in the last 30 seconds and have typed at least one message
+                if timeDiff.total_seconds() < 60:
+                    # remove users that have been active in the last 60 seconds and have typed at least one message
                     if (currName in afkers) and (currName in thesePeopleHaveSpoken):
                         afkers.remove(currName)
                     
-            # remove all users that are inactive for more than 30 seconds
+            # remove all users that are inactive for more than 60 seconds
             afkers = list(set(afkers))
             for stupidMoron in afkers:
                 try:
@@ -155,7 +181,7 @@ while True:
         if pwAttempt.split(' ', 1)[1] == 'ongurt':
             clients.append(client)
             names.append(name)
-            client.send('welcome to the light side'.encode())
+            client.send('Welcome to the light side. Use "/kick <username>" to kick a user'.encode())
             flood('admin has joined'.encode(), client)
             print('got connection from ', client.getpeername())
             
@@ -171,7 +197,7 @@ while True:
         # notify all users when a new person joins
         joinMsg = name + ' has joined the kool kidz klub, ts so owen frfr'
         
-        client.send((name + ', 微信欢迎你来到聊天室！Use "/r <username> <msg>" to send a dm').encode())
+        client.send((name + ', 微信欢迎你来到聊天室！Use "/r <username> <msg>" to send a dm. Use "/img" to send an image.').encode())
         flood(joinMsg.encode(), client)
         
         print('got connection from ', client.getpeername())
