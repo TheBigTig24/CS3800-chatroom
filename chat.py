@@ -102,13 +102,13 @@ def sendImageToAllDemClients(excludedClient = None):
         image_encoded = cv2.imencode('.jpg', image)[1]
         nparr = np.array(image_encoded)
         img_bytes = nparr.tobytes()
+        
         length = str(len(img_bytes))
-        print(length)
             
         for client in clients:
             if client != excludedClient:
                 try:
-                    client.send("/img".encode())
+                    client.send(("/img " + length).encode())
                     client.sendall(img_bytes)
                 except Exception as e:
                     print(f"Error sending image to {client}: {e}")
@@ -124,13 +124,13 @@ def i_call_this_the_inactivity_checker_inator():
         # check for inactivity every 10 seconds
         time.sleep(10)
         
-        # this if statement is to prevent kicking users on join since they have no previous messages
+        # this if statement is to stop from kicking people out when nothings happened yet
         if len(lastActivity) != 0:
             # check people that have sent a message before
             thesePeopleHaveSpoken = [activity['user'] for activity in lastActivity]
             
             # check if they have been active in the last 60 seconds
-            afkers = names.copy()
+            afkers = thesePeopleHaveSpoken.copy()
             currentTime = datetime.datetime.now()
             for activity in lastActivity:
                 currName = activity['user']

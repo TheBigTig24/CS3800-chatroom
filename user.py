@@ -1,8 +1,5 @@
 import socket
 import threading
-from io import BytesIO
-import io
-from PIL import Image
 import numpy as np
 import cv2
 
@@ -20,22 +17,20 @@ def receive():
     while True:
         try:
             msg = client.recv(1024).decode()
-            print(msg)
             if msg == 'gimme yo name bru:':
                 client.send(name.encode())
-            elif msg.startswith('/img'):
-                print('Receiving image...')
-                image_data: bytes = client.recv(4096)
-                data = b'' + image_data
-                print('1')
-                nparr = np.frombuffer(data, np.byte)
-                print('2')
-                image_cv2 = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-                print('3')
-                cv2.imshow('Received Image', image_cv2)
-                print('4')
-                cv2.waitKey(0)
-                cv2.destroyAllWindows()
+            elif msg.startswith('/img'):  
+                # receive the image
+                theLengthTypeShi = msg.split(' ')[1]
+                image_data: bytes = client.recv(8192)
+                
+                if len(image_data) == int(theLengthTypeShi):
+                    data = b'' + image_data
+                    nparr = np.frombuffer(data, np.byte)
+                    image_cv2 = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                    cv2.imshow('Received Image', image_cv2)
+                    cv2.waitKey(0)
+                    cv2.destroyAllWindows()
             else:
                 print(msg)
         except Exception as e:
